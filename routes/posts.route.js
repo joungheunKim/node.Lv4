@@ -10,11 +10,12 @@ router.get('/posts', async (req, res) => {
     const posts = await Posts.findAll({
       attributes: [
         'post_id',
-        'user_id',
+        'User_id',
         'title',
         'content',
         'createdAt',
       ],
+      // order createAt 기준으로 내림차순
       order: [['createdAt', 'DESC']],
     });
 
@@ -22,6 +23,7 @@ router.get('/posts', async (req, res) => {
       const results = posts.map((post) => {
         return {
           postId: post.post_id,
+          userId: post.User_id,
           title: post.title,
           content: post.content,
         };
@@ -58,7 +60,7 @@ router.get('/posts/:post_id', async (req, res) => {
       const results = posts;
       res.status(200).json({ results });
     }else{
-    return res.status(400).json({ message: "게시글 조회에실패하였습니다." });
+    return res.status(400).json({ message: "게시글 조회에 실패하였습니다." });
     }
   } catch (error) {
     console.error(error);

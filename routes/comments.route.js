@@ -60,15 +60,19 @@ router.get('/posts/:post_id/comments', async (req, res) => {
     const comments = await Comments.findAll({
       attributes: ['comment', 'comment_id'],
       where: { Post_id: post_id },
+      // createAt을 DESC (내림차순)으로 바꾼다/
+      // 오름차순은 생략해도 되며, ASC 이다
+      order: [['createdAt', 'DESC']],
     });
-
     if (comments.length !== 0) {
       const results = comments.map((comments) => {
         return {
           comment: comments.comment,
           commentId: comments.comment_id,
+          createAt: comments.createAt
         };
       });
+
       res.status(200).json({ results });
     } else {
       res.json({ message: '댓글이 존재하지 않습니다.' });
@@ -117,6 +121,9 @@ router.put('/comments/:comment_id', authMiddleware, async (req, res) => {
     const existingComment = await Comments.findOne({ where: { comment_id } });
     if (!existingComment) {
       return res.status(404).json({ message: '댓글이 존재하지 않습니다.' });
+    }
+    if (!comment){
+      return res.status(404).json({ message: '댓글 내용을 입력해주세요.' })
     }
 
     // 사용자 인증 및 권한 확인

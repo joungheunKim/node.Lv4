@@ -5,11 +5,11 @@ const authMiddleware = require('../middlewares/auth');
 const router = express.Router();
 
 // 좋아요 생성, 삭제 api
-router.put('/posts/:post_id/likes', authMiddleware, async (req,res)=>{
-  const {user_id} =res.locals.user;
-  const {post_id} =req.params;
+router.put('/posts/:post_id/likes', authMiddleware, async (req, res) => {
+  const { user_id } = res.locals.user;
+  const { post_id } = req.params;
 
-  try{
+  try {
     //유효성 검사
     //인증된 사용자인지
     if (!res.locals.user) {
@@ -22,27 +22,25 @@ router.put('/posts/:post_id/likes', authMiddleware, async (req,res)=>{
       where: {
         User_id: user_id,
         Post_id: post_id,
-      }
+      },
     });
-    if (isExitsLike){
+    if (isExitsLike) {
       const deleteLike = await Likes.destroy({
-        where:{
+        where: {
           User_id: user_id,
           Post_id: post_id,
-        }
-      })
+        },
+      });
       return res.status(200).json({ data: '좋아요가 삭제되었습니다.' });
+    } else {
+      // 새로운 좋아요 생성
+      const createLike = await Likes.create({
+        User_id: user_id,
+        Post_id: post_id,
+      });
+      return res.status(201).json({ data: '좋아요 등록에 성공하였습니다.' });
     }
-    else{
-       // 새로운 좋아요 생성
-    const createLike = await Likes.create({
-      User_id: user_id,
-      Post_id: post_id,
-    });
-    return res.status(201).json({ data: '좋아요 등록에 성공하였습니다.' });
-    }
-   
-  } catch(error){
+  } catch (error) {
     console.error(error);
 
     // 예외 종류에 따른 에러메시지
@@ -59,59 +57,53 @@ router.put('/posts/:post_id/likes', authMiddleware, async (req,res)=>{
       .status(400)
       .json({ errorMessage: '좋아요 등록에 실패하였습니다.' });
   }
-})
+});
 
 // 좋아요 갯수 확인
-router.get('/posts/:post_id/likes', async (req, res)=>{
-  const {post_id} =req.params;
+router.get('/posts/:post_id/likes', async (req, res) => {
+  const { post_id } = req.params;
   try {
     const likes = await Likes.findAll({
-      where:{Post_id: post_id,},
-      attributes: [
-        'post_id'
-      ]
+      where: { Post_id: post_id },
+      attributes: ['post_id'],
     });
 
-    if (likes !== 0){
-      const results = likes.map((like) =>{
+    if (likes !== 0) {
+      const results = likes.map((like) => {
         return {
           postId: like.post_id,
-        }
-      })
-      res.status(200).json({data: `좋아요 ${results.length}` })
+        };
+      });
+      res.status(200).json({ data: `좋아요 ${results.length}` });
     }
   } catch {
     return res
-    .status(400)
-    .json({ errorMessage: '알 수 없는 오류가 발생했습니다.' });
+      .status(400)
+      .json({ errorMessage: '알 수 없는 오류가 발생했습니다.' });
   }
-})
+});
 
 // 좋아요 한 개시글 조회 api
-router.get('/posts/like',authMiddleware, async (req,res)=>{
+router.get('/post/likes', authMiddleware, async (req, res) => {
   try {
-    const {user_id} = res.locals.user;
-    const likePost = await Likes.findAll({
-      where: {
-        User_id: user_id
-      },
-    });
+  const { user_id } = res.locals.user;
+  const likePost = await Likes.findAll({
+    where: { User_id: user_id },
+    attributes:['Post_id','User_id','like_id'],
+    // Posts를 바로 불러오는 include
+    include: [{ model: Posts,
+      attributes:['post_id','title','content',] }],
+    // [] 배열안에 있는 객체를 꺼내기 위한 raw (방법을 바꿔 이제쓸모X)
+    // raw: true
+  });
+  return res.status(200).json(likePost)
 
-    if (likePost){
-      const results = likePost
-      res.status(200).json({data: `좋아요 ${results}` })
-
-    }
-    else{
-      return res.status(400).json({ message: "게시글 조회 실패하였습니다." });
-    }
-  } 
-  catch(error){
+  } catch (error) {
     console.error(error);
     return res
       .status(400)
       .json({ errorMessage: '알 수 없는 오류가 발생했습니다.' });
   }
-})
+});
 
 module.exports = router;
