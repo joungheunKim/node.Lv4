@@ -1,6 +1,6 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { Posts } = require('../models');
+const { Posts, Likes } = require('../models');
 const authMiddleware = require('../middlewares/auth');
 const router = express.Router();
 
@@ -8,27 +8,19 @@ const router = express.Router();
 router.get('/posts', async (req, res) => {
   try {
     const posts = await Posts.findAll({
-      attributes: [
-        'post_id',
-        'User_id',
-        'title',
-        'content',
-        'createdAt',
-      ],
+      attributes: ['post_id', 'User_id', 'title', 'content', 'createdAt', 'likes',
+      // sequelize를 이용한 좋아요 갯수 카운트 (아직 이해를 못해 사용하지않음)
+      // [sequelize.literal(
+      //     "(SELECT COUNT(*) FROM Likes WHERE Likes.PostId = Posts.postId)"),
+      //   "likeCount",
+      // ],
+    ],
       // order createAt 기준으로 내림차순
       order: [['createdAt', 'DESC']],
     });
 
     if (posts.length !== 0) {
-      const results = posts.map((post) => {
-        return {
-          postId: post.post_id,
-          userId: post.User_id,
-          title: post.title,
-          content: post.content,
-        };
-      });
-      res.status(200).json({ results });
+      return res.status(200).json({ data: posts });
     } else {
       res.json({ message: '피드가 존재하지 않습니다.' });
     }
@@ -47,20 +39,14 @@ router.get('/posts/:post_id', async (req, res) => {
   try {
     const { post_id } = req.params;
     const posts = await Posts.findOne({
-      attributes: [
-        'post_id',
-        'user_id',
-        'title',
-        'content',
-        'createdAt',
-      ],
+      attributes: ['post_id', 'user_id', 'title', 'content', 'createdAt'],
       where: { post_id },
     });
     if (posts) {
       const results = posts;
       res.status(200).json({ results });
-    }else{
-    return res.status(400).json({ message: "게시글 조회에 실패하였습니다." });
+    } else {
+      return res.status(400).json({ message: '게시글 조회에 실패하였습니다.' });
     }
   } catch (error) {
     console.error(error);
@@ -74,7 +60,7 @@ router.get('/posts/:post_id', async (req, res) => {
 router.post('/posts', authMiddleware, async (req, res) => {
   //게시글을 생성하는 사용자의 정보를 가지고 올 것.
   const { user_id } = res.locals.user;
-  const { title,  content } = req.body;
+  const { title, content } = req.body;
   const posts = await Posts.findOne({ where: user_id });
 
   try {
@@ -149,7 +135,7 @@ router.put('/posts/:post_id', authMiddleware, async (req, res) => {
         where: {
           [Op.and]: [{ post_id }, { User_id: user_id }],
         },
-      },
+      }
     );
     return res.status(200).json({ message: '게시글이 수정되었습니다.' });
   } catch (error) {
